@@ -1,6 +1,14 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+from pathlib import Path
+import tempfile
+import json
+
+from extraction import read_document, read_pdf, read_docx
+from transform import structure_with_gemini, structure_with_python
+from database import insert_medical_record, get_patient_history
+
 
 
 # ============================================================
