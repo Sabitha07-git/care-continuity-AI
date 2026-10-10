@@ -2393,9 +2393,43 @@ elif st.session_state.page == "AI Assistant":
             key="ai_patient_selector"
         )
 
+                # Suggested questions for the AI Assistant
+        suggested_questions = [
+            "Select a suggested question",
+            "Summarize this patient's medical history.",
+            "What medications are listed in this patient's records?",
+            "What allergies are documented for this patient?",
+            "What are the patient's latest laboratory results?",
+            "How have this patient's laboratory results changed over time?",
+            "What is the patient's most recent clinical assessment?",
+            "What symptoms have been reported by this patient?",
+            "Which hospitals has this patient visited?",
+            "What medical conditions are mentioned in the records?",
+            "What is the patient's latest blood glucose result?",
+            "How has the patient's HbA1c changed over time?",
+            "What blood pressure readings are available?",
+            "Are there any missing details in the patient's medical records?",
+            "What treatments are documented in the patient's records?",
+            "Which medical records support the patient's latest assessment?"
+        ]
+
+        # Update the question box when a suggestion is selected
+        def update_ai_question():
+            selected_question = st.session_state.ai_suggested_question
+
+            if selected_question != "Select a suggested question":
+                st.session_state.ai_patient_question = selected_question
+
+        st.selectbox(
+            "Suggested Questions",
+            options=suggested_questions,
+            key="ai_suggested_question",
+            on_change=update_ai_question
+        )
+
         question = st.text_area(
             "Ask a Question",
-            placeholder="Example: What medications are listed for this patient?",
+            placeholder="Select a suggested question or type your own...",
             key="ai_patient_question"
         )
 
