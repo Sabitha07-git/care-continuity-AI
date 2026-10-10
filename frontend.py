@@ -6,7 +6,11 @@ import tempfile
 import json
 
 from extraction import read_document, read_pdf, read_docx
-from transform import structure_with_gemini, structure_with_python
+from transform import (
+    structure_with_gemini,
+    structure_with_python,
+    answer_patient_question
+)
 from database import (
     insert_medical_record,
     get_all_medical_records,
@@ -871,10 +875,11 @@ with st.container(key="header"):
 
     with nav_col:
 
-        nav1, nav2, nav3, nav4, nav5 = st.columns(
-            [1, 1, 1.15, 1.1, 1],
+        nav1, nav2, nav3, nav4, nav5, nav6 = st.columns(
+             [1, 1, 1.15, 1.1, 1, 1.15],
             gap="small"
-        )
+        )       
+        
 
         # Dashboard
         with nav1:
@@ -994,6 +999,30 @@ with st.container(key="header"):
                     use_container_width=True
                 ):
                     st.session_state.page = "Records"
+                    st.rerun()
+
+                # AI Assistant
+        with nav6:
+
+            if st.session_state.page == "AI Assistant":
+
+                if st.button(
+                    "AI Assistant",
+                    key="nav_ai_active",
+                    type="primary",
+                    use_container_width=True
+                ):
+                    st.session_state.page = "AI Assistant"
+                    st.rerun()
+
+            else:
+
+                if st.button(
+                    "AI Assistant",
+                    key="nav_ai",
+                    use_container_width=True
+                ):
+                    st.session_state.page = "AI Assistant"
                     st.rerun()
 
     # --------------------------------------------------------
@@ -2327,6 +2356,99 @@ elif st.session_state.page == "Records":
             else:
                 st.error("Could not delete the medical record.")
 
+# ============================================================
+# AI ASSISTANT
+# ============================================================
+
+elif st.session_state.page == "AI Assistant":
+
+    st.markdown(
+        '<div class="section-title">AI Patient Assistant</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        '<div class="section-description">'
+        'Ask questions about a patient using their saved medical records.'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    patients = {}
+
+    for record in st.session_state.records:
+        patient_id = record.get("patient_id")
+
+        if patient_id:
+            patients[patient_id] = (
+                record.get("patient_name") or "Unknown Patient"
+            )
+
+    if patients:
+
+        selected_patient_id = st.selectbox(
+            "Select Patient",
+            options=list(patients.keys()),
+            format_func=lambda pid: f"{patients[pid]} ({pid})",
+            key="ai_patient_selector"
+        )
+
+        question = st.text_area(
+            "Ask a Question",
+            placeholder="Example: What medications are listed for this patient?",
+            key="ai_patient_question"
+        )
+
+                # Store separate conversations for each patient
+        if "ai_chat_history" not in st.session_state:
+            st.session_state.ai_chat_history = {}
+
+        if selected_patient_id not in st.session_state.ai_chat_history:
+            st.session_state.ai_chat_history[selected_patient_id] = []
+
+        chat_history = st.session_state.ai_chat_history[selected_patient_id]
+
+        # Display previous questions and answers
+        st.subheader("Conversation")
+
+        for message in chat_history:
+            with st.chat_message(message["role"]):
+                st.write(message["content"])
+
+        # Ask a new question
+        if st.button("Ask AI", type="primary"):
+
+            if not question.strip():
+                st.warning("Please enter a question.")
+
+            else:
+                patient_records = [
+                    record
+                    for record in st.session_state.records
+                    if record.get("patient_id") == selected_patient_id
+                ]
+
+                with st.spinner("AI is analyzing patient records..."):
+                    answer = answer_patient_question(
+                        question,
+                        patient_records
+                    )
+
+                # Save the question and answer
+                chat_history.append({
+                    "role": "user",
+                    "content": question
+                })
+
+                chat_history.append({
+                    "role": "assistant",
+                    "content": answer
+                })
+
+                st.rerun()
+
+    else:
+        st.info("No patient records available.")
 # ============================================================
 # FOOTER
 # ============================================================
